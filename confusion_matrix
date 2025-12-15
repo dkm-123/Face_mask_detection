@@ -1,0 +1,51 @@
+# confusion_matrix.py
+
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
+# ----- CONFIG -----
+IMG_SIZE = 224
+BATCH_SIZE = 32
+MODEL_PATH = r"C:\Users\Admin\OneDrive\Desktop\face_mask_detection\mobilenet_mask_model_finetuned.h5"
+TEST_DIR = r"C:\Users\Admin\OneDrive\Desktop\face_mask_detection\dataset_for_maskdetection\Face Mask Dataset\Test"
+
+# ----- LOAD MODEL -----
+model = load_model(MODEL_PATH)
+
+# ----- LOAD TEST DATA -----
+# ✅ FIX: Use MobileNetV2 preprocessing to match training
+test_gen = ImageDataGenerator(preprocessing_function=preprocess_input)
+
+test_data = test_gen.flow_from_directory(
+    TEST_DIR,
+    target_size=(IMG_SIZE, IMG_SIZE),
+    batch_size=BATCH_SIZE,
+    class_mode='binary',
+    shuffle=False
+)
+
+# Check class mapping
+print("\n✅ Class Indices:", test_data.class_indices)
+
+# ----- PREDICT -----
+print("\n🔍 Predicting...")
+y_true = test_data.classes
+y_pred_probs = model.predict(test_data)
+y_pred = (y_pred_probs > 0.5).astype(int).flatten()
+
+# ----- CONFUSION MATRIX -----
+cm = confusion_matrix(y_true, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Mask', 'No Mask'])
+
+disp.plot(cmap=plt.cm.Blues)
+plt.title("Confusion Matrix - Face Mask Detection")
+
+# Save in same folder
+plt.savefig("confusion_matrix.png")
+plt.show()
+
+print("\n✅ Confusion Matrix saved as 'confusion_matrix.png'")
